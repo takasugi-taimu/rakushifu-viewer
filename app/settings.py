@@ -2,6 +2,9 @@ import os
 from dataclasses import dataclass
 
 
+MAX_REQUEST_BODY_BYTES = 8 * 1024
+
+
 @dataclass(frozen=True)
 class AppSettings:
     environment: str

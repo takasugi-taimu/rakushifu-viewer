@@ -1,10 +1,11 @@
 import os
 from pathlib import Path
 
-from flask import Flask, Response, request
+from flask import Flask, Response, jsonify, request
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from .application.use_cases import ShiftUseCases
-from .settings import AppSettings
+from .settings import AppSettings, MAX_REQUEST_BODY_BYTES
 from .web.routes import routes
 
 
@@ -25,9 +26,16 @@ def create_app(config=None, use_cases=None, *, worker_runtime=False) -> Flask:
         CACHE_SECONDS=settings.cache_seconds,
         MAX_CACHED_MONTHS=settings.max_cached_months,
         MAX_SESSIONS=500,
+        MAX_CONTENT_LENGTH=MAX_REQUEST_BODY_BYTES,
     )
     if config:
         app.config.update(config)
+    @app.errorhandler(RequestEntityTooLarge)
+    def request_too_large(error):
+        response = jsonify({"error": "リクエストが大きすぎます"})
+        response.headers["Cache-Control"] = "no-store"
+        return response, 413
+
     if settings.environment == "production":
         if not app.config["APP_COOKIE_SECURE"]:
             raise ValueError("production requires APP_COOKIE_SECURE=true")

@@ -2,6 +2,7 @@
 
 import json
 import time
+from copy import deepcopy
 
 from workers import DurableObject, wsgi
 
@@ -9,6 +10,7 @@ from app import create_app
 from app.application.errors import CredentialsUnavailable, InvalidScheduleData, UpstreamError
 from app.infrastructure.worker_http import WorkerRakushifuConnection
 from app.infrastructure.worker_state import month_to_json
+from app.settings import MAX_REQUEST_BODY_BYTES
 
 
 class SessionObject(DurableObject):
@@ -17,11 +19,13 @@ class SessionObject(DurableObject):
         self.cache = {}
         self.cache_seconds = 120
         self.max_cached_months = 3
+        self.generation = 0
 
     async def create(self, state_json, month_json, key_json,
                      cache_seconds, max_cached_months):
         if await self.ctx.storage.get("session") is not None:
             raise RuntimeError("session already exists")
+        self.generation += 1
         self.cache_seconds = int(cache_seconds)
         self.max_cached_months = int(max_cached_months)
         state = json.loads(state_json)
@@ -57,15 +61,25 @@ class SessionObject(DurableObject):
             return json.dumps({"error": "ok", "month": cached[1]})
         connection = WorkerRakushifuConnection.from_state(state)
         viewer = connection.viewer
+        generation = self.generation
         try:
             result = await connection.fetch_async(
                 key[0], key[1], viewer.store_id, viewer.genre_id)
+            credentials = deepcopy(connection.export_state())
         except CredentialsUnavailable:
             await self.remove()
             return json.dumps({"error": "credentials"})
         except (UpstreamError, InvalidScheduleData) as error:
             return json.dumps({"error": "upstream", "message": str(error)})
-        state.update(connection.export_state())
+        finally:
+            connection.close()
+        # External fetch yields to logout/alarm RPCs. Revalidate before writing;
+        # consecutive storage calls are protected by Durable Object input gates.
+        current_state = await self.read()
+        if current_state is None or generation != self.generation:
+            return json.dumps({"error": "expired"})
+        state = json.loads(current_state)
+        state.update(credentials)
         await self.ctx.storage.put("session", json.dumps(state, ensure_ascii=False))
         now = time.time()
         self.cache = {old: value for old, value in self.cache.items()
@@ -78,6 +92,7 @@ class SessionObject(DurableObject):
         return json.dumps({"error": "ok", "month": serialized})
 
     async def remove(self):
+        self.generation += 1
         self.cache.clear()
         await self.ctx.storage.deleteAlarm()
         await self.ctx.storage.deleteAll()
@@ -90,8 +105,7 @@ class SessionObject(DurableObject):
         if expires_at > time.time():
             await self.ctx.storage.setAlarm(int(expires_at * 1000))
             return
-        self.cache.clear()
-        await self.ctx.storage.deleteAll()
+        await self.remove()
 
 
 class LoginLimitObject(DurableObject):
@@ -112,4 +126,47 @@ class LoginLimitObject(DurableObject):
 
 app = create_app({"APP_ENV": "production", "APP_COOKIE_SECURE": True},
                  worker_runtime=True)
-Default = wsgi.entrypoint(app)
+
+
+class Default(wsgi.entrypoint(app)):
+    async def fetch(self, request):
+        from workers import Request, Response
+
+        if not isinstance(request, Request):
+            request = Request(request)
+
+        def too_large():
+            return Response(
+                json.dumps({"error": "リクエストが大きすぎます"}, ensure_ascii=False),
+                status=413, headers={"Content-Type": "application/json; charset=utf-8",
+                                     "Cache-Control": "no-store"},
+            ).js_object
+
+        length = request.headers.get("Content-Length")
+        if length is not None and int(length) > MAX_REQUEST_BODY_BYTES:
+            if request.body:
+                await request.body.cancel()
+            return too_large()
+        if not request.body:
+            return await super().fetch(request)
+
+        # Bound actual streamed bytes, including bodies without Content-Length,
+        # before the WSGI adapter can buffer or parse them.
+        reader = request.body.getReader()
+        body = bytearray()
+        try:
+            while True:
+                chunk = await reader.read()
+                if chunk.done:
+                    break
+                if len(body) + int(chunk.value.byteLength) > MAX_REQUEST_BODY_BYTES:
+                    await reader.cancel()
+                    return too_large()
+                body.extend(chunk.value.to_bytes())
+        finally:
+            reader.releaseLock()
+        headers = dict(request.headers.items())
+        headers["Content-Length"] = str(len(body))
+        bounded_request = Request(request.url, method=request.method,
+                                  headers=headers, body=bytes(body))
+        return await super().fetch(bounded_request)

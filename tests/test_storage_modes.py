@@ -107,7 +107,7 @@ class StorageModeTests(unittest.TestCase):
 
         fake_workers = types.SimpleNamespace(
             DurableObject=FakeDurableObject,
-            wsgi=types.SimpleNamespace(entrypoint=lambda app: app),
+            wsgi=types.SimpleNamespace(entrypoint=lambda app: type("Entrypoint", (), {})),
         )
         with patch.dict(sys.modules, {"workers": fake_workers}):
             from importlib import import_module
