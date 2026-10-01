@@ -63,7 +63,7 @@ def create_app(config=None, use_cases=None, *, worker_runtime=False) -> Flask:
     else:
         from .infrastructure.durable_sessions import DurableLoginLimiter
         app.extensions["login_limiter"] = DurableLoginLimiter()
-        @app.get("/static/<path:filename>")
+        @app.get("/static/<path:filename>", endpoint="static")
         def worker_static(filename):
             from pyodide.ffi import run_sync
             try:

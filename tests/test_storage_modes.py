@@ -15,6 +15,22 @@ from app.settings import AppSettings
 
 
 class StorageModeTests(unittest.TestCase):
+    def test_authenticated_index_builds_static_urls_in_both_modes(self):
+        class AuthenticatedUseCases:
+            def authenticated(self, token):
+                return True
+
+        for environment in ("test", "production"):
+            with self.subTest(environment=environment):
+                app = create_app(
+                    {"APP_ENV": environment, "TESTING": True},
+                    AuthenticatedUseCases(), worker_runtime=True,
+                )
+                response = app.test_client().get("/")
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b'href="/static/style.css"', response.data)
+                self.assertIn(b'src="/static/app.js"', response.data)
+
     def test_storage_failure_returns_503_instead_of_login_expired(self):
         class BrokenUseCases:
             def authenticated(self, token):
