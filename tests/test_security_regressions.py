@@ -2,6 +2,7 @@ import asyncio
 import importlib.util
 import io
 import json
+from http.client import HTTPMessage
 from pathlib import Path
 import sys
 import types
@@ -50,7 +51,15 @@ class FakeRequest:
     def __init__(self, url, method=None, headers=None, body=None):
         if not isinstance(url, str):
             url, method, headers, body = url.url, url.method, url.headers, url.body
-        self.url, self.method, self.headers, self.body = url, method, headers, body
+        normalized = {}
+        for name, value in headers.items():
+            key = name.lower()
+            normalized[key] = (normalized[key] + ", " + value
+                               if key in normalized else value)
+        self.headers = HTTPMessage()
+        for name, value in normalized.items():
+            self.headers[name] = value
+        self.url, self.method, self.body = url, method, body
 
 
 class FakeResponse:
@@ -205,6 +214,8 @@ class SecurityRegressionTests(unittest.TestCase):
             ({"Content-Length": "1"}, [b"x" * (MAX_REQUEST_BODY_BYTES + 1)], 413),
             ({}, [b"x" * MAX_REQUEST_BODY_BYTES], 200),
             ({}, [b'{"employee_code":"DEMO","password":"test-password"}'], 200),
+            ({"content-length": "2", "content-type": "application/json"}, [b'{}'], 200),
+            ({"transfer-encoding": "chunked", "content-type": "application/json"}, [b'{}'], 200),
         )
         for headers, chunks, status in cases:
             with self.subTest(headers=headers, size=sum(map(len, chunks))):
@@ -221,5 +232,46 @@ class SecurityRegressionTests(unittest.TestCase):
                 else:
                     self.assertEqual(result.body, b"".join(chunks))
                     self.assertEqual(int(result.headers["Content-Length"]), len(result.body))
+                    self.assertNotIn("transfer-encoding", result.headers)
                 if stream.read_count:
                     self.assertTrue(stream.released)
+
+    def test_worker_preserves_json_body_for_authenticated_pay_estimate(self):
+        worker = load_worker()
+        payload = {"year": 2026, "month": 10, "hourly_wage": 1200,
+                   "night_bonus_percent": 25}
+        body = json.dumps(payload).encode()
+        chunk = types.SimpleNamespace(byteLength=len(body), to_bytes=lambda: body)
+
+        class Stream:
+            def __init__(self):
+                self.chunks = iter([chunk, None])
+
+            def getReader(self):
+                return self
+
+            async def read(self):
+                value = next(self.chunks)
+                return types.SimpleNamespace(done=value is None, value=value)
+
+            def releaseLock(self):
+                pass
+
+        request = types.SimpleNamespace(
+            url="https://example.test/api/pay/estimate", method="POST", body=Stream(),
+            headers={"content-type": "application/json", "content-length": str(len(body))},
+        )
+        with patch.dict(sys.modules, {"workers": FAKE_WORKERS}):
+            bounded = asyncio.run(worker.Default().fetch(request))
+        use_cases = Mock()
+        use_cases.authenticated.return_value = True
+        use_cases.my_pay.return_value = {"estimated_yen": 1200}
+        app = create_app({"TESTING": True}, use_cases)
+        environ = EnvironBuilder(path="/api/pay/estimate", method="POST",
+                                 data=bounded.body, content_type="application/json").get_environ()
+        environ["CONTENT_LENGTH"] = bounded.headers["content-length"]
+        with app.request_context(environ):
+            response = app.full_dispatch_request()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"estimated_yen": 1200})
+        use_cases.my_pay.assert_called_once()

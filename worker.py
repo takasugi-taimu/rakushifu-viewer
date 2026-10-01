@@ -165,8 +165,11 @@ class Default(wsgi.entrypoint(app)):
                 body.extend(chunk.value.to_bytes())
         finally:
             reader.releaseLock()
-        headers = dict(request.headers.items())
-        headers["Content-Length"] = str(len(body))
+        # Fetch headers are case-insensitive; normalize before replacing length
+        # so native Headers cannot merge two values into e.g. "64, 64".
+        headers = {name.lower(): value for name, value in request.headers.items()
+                   if name.lower() != "transfer-encoding"}
+        headers["content-length"] = str(len(body))
         bounded_request = Request(request.url, method=request.method,
                                   headers=headers, body=bytes(body))
         return await super().fetch(bounded_request)
