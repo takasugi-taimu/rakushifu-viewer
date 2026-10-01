@@ -9,6 +9,7 @@ Flask版はPC上で起動し、Workers版はWorkersのローカル開発環境�
 - [必要なツール](#必要なツール)
 - [Flask版の起動](#flask版の起動)
 - [Workersの起動・デプロイ](#workersの起動デプロイ)
+- [GitHub Actionsから自動デプロイする](#github-actionsから自動デプロイする)
 - [アプリケーションの設定](#アプリケーションの設定)
 - [トラブル対応](#トラブル対応)
 - [検証範囲](#検証範囲)
@@ -149,6 +150,43 @@ uv run pywrangler dev
 | `exports.LoginLimitObject` | SQLiteを使うDurable Objectとして宣言 |
 
 `exports`はCloudflareの[Wrangler設定](https://developers.cloudflare.com/workers/wrangler/configuration/#exports)に沿ったクラス宣言です。同じDurable Object向けの`migrations`との併用はできません。
+
+## GitHub Actionsから自動デプロイする
+
+`.github/workflows/ci-deploy.yml`は、既存のローカルテストが成功した後にWorkersをデプロイします。実際のらくしふアカウントを使うログイン・シフト取得テストは実行しません。
+
+| 起動条件 | 実行内容 |
+| --- | --- |
+| `main`へのpush | テスト後、成功した場合にデプロイ |
+| `main`宛てのPull Request | テストのみ |
+| Actions画面から手動実行 | テスト。選択ブランチが`main`の場合は成功後にデプロイ |
+
+テストはPython 3.10で`requirements-local.txt`を導入し、`python -m unittest discover -s tests -v`を実行します。デプロイは別ジョブでPython 3.14、Node.js 22、uv、Wranglerを準備します。`prepare_worker.py`でファイルを配置し、`.worker-build`内で`uv run --locked pywrangler deploy`を実行します。
+
+デプロイジョブはテストジョブの成功を条件とします。`main`の実行は直列化し、デプロイの途中で別のpushによるキャンセルを行いません。Pull Requestのテストは、新しい変更が届くと以前の実行をキャンセルします。
+
+### GitHub Secretsを登録する
+
+1. Cloudflareで「Edit Cloudflare Workers」のAPIトークンを作成し、公開するアカウントにアクセス範囲を限定します。
+2. 対象のCloudflareアカウントIDを確認します。
+3. GitHubリポジトリの **Settings → Secrets and variables → Actions** を開き、次のRepository secretsを登録します。
+
+| Secret名 | 登録する値 |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | デプロイ権限を持つCloudflareのAPIトークン |
+| `CLOUDFLARE_ACCOUNT_ID` | 公開先のCloudflareアカウントID |
+
+認証情報が未設定の場合、テストは実行されますが、デプロイジョブは設定不足のエラーで停止します。トークンをソースやWrangler設定へ記載する必要はありません。認証情報は、デプロイジョブの設定確認とデプロイ時に渡します。
+
+Cloudflareのリポジトリ連携による本番自動デプロイを併用すると、同じpushに対して二つの公開処理が走る可能性があります。このワークフローで公開する場合は、Cloudflare側の本番自動デプロイを無効にしてください。認証設定はCloudflareの[GitHub Actionsガイド](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/)にも記載されています。
+
+### 実行結果を確認・再実行する
+
+GitHubの **Actions → テストとCloudflareへのデプロイ** で、テストとデプロイの結果を確認します。成功したデプロイのログには、公開先のURLが表示されます。
+
+初回は、Secretsの登録後に **Run workflow** から`main`を選択して実行できます。失敗した実行をやり直す場合は、その実行の **Re-run failed jobs** を使用します。APIトークンの期限切れや権限不足の場合は、Secretを更新してから再実行してください。
+
+この自動テストは、実アカウントでの認証成功やシフト取得を確認するものではありません。公開後の確認手順は[Cloudflareへデプロイする](#cloudflareへデプロイする)を参照してください。
 
 ## アプリケーションの設定
 
