@@ -158,12 +158,15 @@ uv run pywrangler dev
 | 起動条件 | 実行内容 |
 | --- | --- |
 | `main`へのpush | テスト後、成功した場合にデプロイ |
-| `main`宛てのPull Request | テストのみ |
+| `dev`へのpush | テストのみ |
+| `main`・`dev`宛てのPull Request | テストのみ |
 | Actions画面から手動実行 | テスト。選択ブランチが`main`の場合は成功後にデプロイ |
 
 テストはPython 3.10で`requirements-local.txt`を導入し、`python -m unittest discover -s tests -v`を実行します。デプロイは別ジョブでPython 3.14、Node.js 22、uv、Wranglerを準備します。`prepare_worker.py`でファイルを配置し、`.worker-build`内で`uv run --locked pywrangler deploy`を実行します。
 
 デプロイジョブはテストジョブの成功を条件とします。`main`の実行は直列化し、デプロイの途中で別のpushによるキャンセルを行いません。Pull Requestのテストは、新しい変更が届くと以前の実行をキャンセルします。
+
+通常の変更はdev向けPRで「ローカルテスト」の結果を確認します。CI追加前のコミットや、この設定を含まないブランチではdev向けCIが動かない場合があるため、対象コミットで実際に実行された結果を確認してください。チェックが必須化されている場合、成功するまでマージできません。
 
 ### GitHub Secretsを登録する
 
