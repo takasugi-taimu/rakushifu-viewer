@@ -73,7 +73,7 @@ APP_ENV=test .venv/bin/python api.py
 
 Workers版にはPython 3.14、uv、Node.js 22以上とnpmが必要です。クラウドに公開する場合はCloudflareアカウントも用意します。
 
-Workers版はローカルでの起動・配信を確認しています。実アカウントでのログイン・シフト取得と、Cloudflare上での動作は未確認です。実接続まで確認済みなのはFlask版です。
+Workers版はローカル起動に加え、GitHub ActionsからCloudflareへのデプロイ、公開先のログイン画面・静的ファイルの配信、未認証APIの応答を確認しています。Workers版の実アカウントでのログイン・シフト取得は未確認です。実接続まで確認済みなのはFlask版です。
 
 ```sh
 npm ci
