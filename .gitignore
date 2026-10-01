@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+.venv-workers/
+.uv-python/
+node_modules/
+.worker-build/
+.worker-build-*/
+.wrangler/
+.playwright-cli/
+python_modules/
+output/
+.env
+.env.*
+data/
+.local-private-data/
+*.log

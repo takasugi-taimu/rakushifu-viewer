@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>シフト管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body data-cache-seconds="{{ config.CACHE_SECONDS }}">
+
+    <header class="app-header" id="appHeader">
+        <div class="header-inner">
+            <div class="brand-lockup">
+                <span class="brand-icon" aria-hidden="true"><i class="bi bi-calendar2-week"></i></span>
+                <span>シフトビューア</span>
+            </div>
+            <form method="post" action="{{ url_for('routes.logout') }}">
+                <button class="logout-link" type="submit" aria-label="ログアウト">
+                    <i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>ログアウト</span>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <main class="page-shell">
+    <div class="calendar-layout" id="calendarPage">
+    <div class="calendar-sidebar">
+    <section class="month-panel" aria-label="表示中の月">
+        <div class="month-panel-content">
+            <p class="month-eyebrow">SHIFT CALENDAR</p>
+            <h1 class="month-display">
+                <span class="month-num" id="monthNum"></span>
+                <span class="month-label">月</span>
+                <span class="month-year" id="monthYear"></span>
+            </h1>
+            <p class="month-caption">シフトをひと目で。</p>
+        </div>
+        <div class="month-switcher" role="group" aria-label="カレンダーの表示月">
+            <button class="month-switch-btn" type="button" onclick="changeMonth(-1)" aria-label="前月" title="前月"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+            <button class="month-switch-btn" type="button" onclick="changeMonth(1)" aria-label="次月" title="次月"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+        </div>
+    </section>
+
+    </div>
+
+    <div class="calendar-wrapper">
+        <div class="calendar-header-row">
+            <div class="calendar-header sun">日</div>
+            <div class="calendar-header">月</div>
+            <div class="calendar-header">火</div>
+            <div class="calendar-header">水</div>
+            <div class="calendar-header">木</div>
+            <div class="calendar-header">金</div>
+            <div class="calendar-header sat">土</div>
+        </div>
+        <div class="calendar-grid" id="calendarContainer"></div>
+    </div>
+    </div>
+
+    <section class="search-page" id="searchPage" aria-labelledby="searchPageTitle" hidden>
+        <div class="search-page-heading">
+            <p class="month-eyebrow">STAFF DIRECTORY</p>
+            <h1 id="searchPageTitle">スタッフ検索</h1>
+            <p id="searchMonth" class="pay-page-month"></p>
+            <div class="month-switcher page-month-switcher" role="group" aria-label="検索対象月">
+                <button class="month-switch-btn" type="button" onclick="changeMonth(-1)" aria-label="前月" title="前月"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                <button class="month-switch-btn" type="button" onclick="changeMonth(1)" aria-label="次月" title="次月"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+            </div>
+        </div>
+        <div class="search-page-content">
+            <label class="field-label" for="staffSearchInput">名前・従業員コード</label>
+            <input class="form-control" id="staffSearchInput" type="search" maxlength="100" autocomplete="off" placeholder="スタッフを検索">
+            <div id="searchResults" class="search-results" aria-live="polite"></div>
+        </div>
+    </section>
+
+    <section class="pay-page" id="payPage" aria-labelledby="payPageTitle" hidden>
+        <div class="pay-page-heading">
+            <p class="month-eyebrow">PAY ESTIMATE</p>
+            <h1 id="payPageTitle">勤務時間と給与の概算</h1>
+            <p id="payMonth" class="pay-page-month"></p>
+            <div class="month-switcher page-month-switcher" role="group" aria-label="給与の対象月">
+                <button class="month-switch-btn" type="button" onclick="changeMonth(-1)" aria-label="前月" title="前月"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                <button class="month-switch-btn" type="button" onclick="changeMonth(1)" aria-label="次月" title="次月"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+            </div>
+        </div>
+        <div class="pay-page-content">
+            <div class="pay-fields">
+                <label class="field-label" for="hourlyWage">時給（円）
+                    <input class="form-control pay-input" id="hourlyWage" type="number" min="0" max="100000" step="1" inputmode="decimal" placeholder="時給を入力">
+                </label>
+                <label class="field-label" for="nightBonus">深夜割増率（%）
+                    <input class="form-control pay-input" id="nightBonus" type="number" min="0" max="500" step="1" value="25" inputmode="decimal">
+                </label>
+            </div>
+            <div id="payResults" aria-live="polite"></div>
+            <p class="pay-note">らくしふのシフトと休憩時刻から計算した概算です。深夜帯は22:00〜翌5:00。残業・休日割増、交通費、税金は含みません。時給と割増率はこのブラウザに保存します。</p>
+        </div>
+    </section>
+    </main>
+
+    <nav class="floating-nav" aria-label="画面の切り替え">
+        <button class="dock-item dock-page is-active" id="calendarNavBtn" type="button" onclick="showCalendarPage()" aria-label="カレンダーを表示" aria-current="page" title="カレンダーを表示">
+            <i class="bi bi-calendar3" aria-hidden="true"></i><span>カレンダー</span>
+        </button>
+        <button class="dock-item dock-page" id="searchNavBtn" type="button" onclick="showSearchPage()" aria-label="スタッフ検索を表示" title="スタッフ検索を表示">
+            <i class="bi bi-search" aria-hidden="true"></i><span>検索</span>
+        </button>
+        <button class="dock-item dock-page" id="payNavBtn" type="button" onclick="showPayPage()" aria-label="給与の概算を表示" title="給与の概算を表示">
+            <i class="bi bi-cash-coin" aria-hidden="true"></i><span>給与</span>
+        </button>
+    </nav>
+
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header-custom">
+                    <div class="modal-heading">
+                        <h5 class="modal-title" id="modalTitle"></h5>
+                        <div class="modal-date-sub" id="modalDateSub"></div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <div class="d-flex justify-content-center py-5">
+                        <div class="spinner-ring"></div>
+                    </div>
+                </div>
+                <div class="modal-footer-custom">
+                    <button type="button" class="btn-dismiss" data-bs-dismiss="modal">閉じる</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="staffDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header-custom">
+                    <div class="modal-heading">
+                        <h5 class="modal-title"><span id="staffDetailName"></span></h5>
+                        <div class="modal-date-sub">従業員ID: <span id="staffDetailCode"></span></div>
+                        <div class="modal-date-sub">誕生日: <span id="staffDetailBirthday"></span></div>
+                    </div>
+                    <button type="button" class="btn-close" onclick="backToShiftDetail()" aria-label="戻る"></button>
+                </div>
+
+                <div class="modal-body" id="staffDetailBody">
+                    <div class="d-flex justify-content-center py-5">
+                        <div class="spinner-ring"></div>
+                    </div>
+                </div>
+
+                <div class="modal-footer-custom">
+                    <button type="button" class="btn-dismiss" onclick="backToShiftDetail()">戻る</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ログイン - シフト管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --primary-50: #eef2ff;
+            --primary-100: #e0e7ff;
+            --surface: #ffffff;
+            --bg: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 24px;
+            --shadow-lg: 0 12px 40px rgba(0,0,0,.08);
+            --transition-fast: 150ms cubic-bezier(.4,0,.2,1);
+            --transition-base: 250ms cubic-bezier(.4,0,.2,1);
+            --font-sans: 'Inter', 'Noto Sans JP', system-ui, -apple-system, sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            animation: fadeInUp .5s cubic-bezier(.4,0,.2,1) both;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .login-card {
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,.03);
+            overflow: hidden;
+        }
+        .login-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            padding: 36px 32px 28px;
+            text-align: center;
+            position: relative;
+        }
+        .login-header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 0; right: 0;
+            height: 24px;
+            background: var(--surface);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+        .login-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: rgba(255,255,255,.2);
+            backdrop-filter: blur(8px);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .login-icon i {
+            font-size: 1.5rem;
+            color: #fff;
+        }
+        .login-title {
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -.01em;
+        }
+        .login-subtitle {
+            color: rgba(255,255,255,.75);
+            font-size: .82rem;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        .login-body {
+            padding: 8px 32px 32px;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-label-custom {
+            display: block;
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            letter-spacing: .01em;
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            font-family: var(--font-sans);
+            font-size: .9rem;
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+            outline: none;
+        }
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+        .form-input:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+        }
+        .btn-login {
+            width: 100%;
+            padding: 13px;
+            border-radius: var(--radius-md);
+            border: none;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: #fff;
+            font-family: var(--font-sans);
+            font-weight: 600;
+            font-size: .9rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            box-shadow: 0 2px 8px rgba(99,102,241,.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-login:hover {
+            box-shadow: 0 4px 16px rgba(99,102,241,.35);
+            transform: translateY(-1px);
+        }
+        .btn-login:active {
+            transform: translateY(0);
+        }
+        .btn-login:disabled {
+            opacity: .7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .error-message {
+            background: #fef2f2;
+            color: var(--danger);
+            font-size: .82rem;
+            font-weight: 500;
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(239,68,68,.15);
+        }
+        .error-message.show {
+            display: flex;
+        }
+        .error-message i {
+            font-size: .9rem;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-icon">
+                    <i class="bi bi-calendar3"></i>
+                </div>
+                <h1 class="login-title">シフト管理</h1>
+                <p class="login-subtitle">らくしふの従業員アカウントでログイン</p>
+            </div>
+            <div class="login-body">
+                <div class="error-message" id="errorMessage">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <span id="errorText"></span>
+                </div>
+                <form id="loginForm" method="POST" action="/login">
+                    <div class="form-group">
+                        <label class="form-label-custom" for="employeeCode">従業員ID</label>
+                        <input type="text" class="form-input" id="employeeCode" name="employee_code"
+                               placeholder="従業員IDを入力" autocomplete="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-custom" for="password">パスワード</label>
+                        <input type="password" class="form-input" id="password" name="password"
+                               placeholder="パスワードを入力" autocomplete="current-password" required>
+                    </div>
+                    <button type="submit" class="btn-login" id="btnLogin">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        ログイン
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const btnLogin = document.getElementById('btnLogin');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMessage.classList.remove('show');
+            btnLogin.disabled = true;
+            btnLogin.innerHTML = '<span class="spinner-border spinner-border-sm"></span> ログイン中...';
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        employee_code: formData.get('employee_code'),
+                        password: formData.get('password'),
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    window.location.href = '/';
+                } else {
+                    errorText.textContent = data.error || 'ログインに失敗しました';
+                    errorMessage.classList.add('show');
+                    btnLogin.disabled = false;
+                    btnLogin.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> ログイン';
+                }
+            } catch (err) {
+                errorText.textContent = '通信エラーが発生しました';
+                errorMessage.classList.add('show');
+                btnLogin.disabled = false;
+                btnLogin.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> ログイン';
+            }
+        });
+    </script>
+</body>
+</html>
