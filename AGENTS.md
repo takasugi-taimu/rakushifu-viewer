@@ -279,9 +279,9 @@ python scripts/prepare_worker.py
 
 ### 8.2 CIの現在の制約
 
-現状の[CI](.github/workflows/ci-deploy.yml)は、main向けPRとmainへのpush、手動実行を対象とする。テストはPython 3.10のローカル用unittestであり、WorkersのPython 3.14での動作やブラウザ操作をすべて検証するものではない。
+現状の[CI](.github/workflows/ci-deploy.yml)は、main・dev向けPR、main・devへのpush、手動実行を対象とする。devへのpushとPRではテストのみを実行し、デプロイはmainへのpushまたはmainの手動実行でテストに成功した場合だけ行う。テストはPython 3.10のローカル用unittestであり、WorkersのPython 3.14での動作やブラウザ操作をすべて検証するものではない。
 
-dev向けPRにCIが未整備の間は、ローカルの必須検証結果と「dev向けCI未実行」を明記する。dev向けCIが動かないことを、CI成功として扱わない。dev向けCIの整備は後続作業とする。
+dev向けPRでも、対象コミットの「ローカルテスト」のCI結果を確認する。CI追加前のコミットや設定を含まないブランチなど、dev向けCIが動かない場合はローカルの必須検証結果と「dev向けCI未実行」を明記し、CI成功として扱わない。
 
 main向けリリース・hotfix PRでは、対象コミットの既存CI結果を確認する。ユーザーがマージを判断できるよう、成功・失敗・実行中を正確に報告する。まだ動いていないチェックを通過済みと書かない。
 
