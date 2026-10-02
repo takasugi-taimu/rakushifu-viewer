@@ -43,6 +43,7 @@ function updateMonthDisplay() {
     const month = currentDate.getMonth();
     document.getElementById('monthYear').textContent = `${year}年`;
     document.getElementById('monthNum').textContent = month + 1;
+    document.getElementById('mobileMonth').textContent = `${year}年${month + 1}月`;
 }
 
 async function fetchCalendarData(year, month) {
@@ -71,6 +72,7 @@ async function renderCalendar(silent = false) {
     updateMonthDisplay();
 
     if (!silent) {
+        document.getElementById('mobileShiftSummary').textContent = '自分の勤務日を確認中…';
         calendarContainer.innerHTML = `
             <div class="loading-placeholder">
                 <div class="spinner-ring"></div>
@@ -81,6 +83,7 @@ async function renderCalendar(silent = false) {
     const shiftData = await fetchCalendarData(year, month);
     if (requestId !== calendarRequestId) return;
     if (shiftData === null) {
+        if (!silent) document.getElementById('mobileShiftSummary').textContent = '自分の勤務日を取得できませんでした';
         if (!silent) calendarContainer.innerHTML = '<div class="loading-placeholder">シフトを取得できませんでした</div>';
         calendarRefreshTimer = setTimeout(() => renderCalendar(true), Math.min(calendarRefreshMs, 30000));
         return;
@@ -92,6 +95,7 @@ async function renderCalendar(silent = false) {
     const startDay = firstDay.getDay();
     const totalDays = lastDay.getDate();
     const today = new Date();
+    let myShiftDays = 0;
 
     for (let i = 0; i < startDay; i++) {
         const emptyCell = document.createElement('div');
@@ -105,6 +109,7 @@ async function renderCalendar(silent = false) {
         const dayOfWeek = dateObj.getDay();
 
         const dayData = shiftData[dateStr] || { has_me: false, total_count: 0 };
+        if (dayData.has_me) myShiftDays++;
         const isToday = dateObj.getDate() === today.getDate() &&
                         dateObj.getMonth() === today.getMonth() &&
                         dateObj.getFullYear() === today.getFullYear();
@@ -136,6 +141,7 @@ async function renderCalendar(silent = false) {
         cells.appendChild(cell);
     }
     calendarContainer.replaceChildren(cells);
+    document.getElementById('mobileShiftSummary').textContent = `自分の勤務日：${myShiftDays}日`;
     calendarRefreshTimer = setTimeout(() => renderCalendar(true), calendarRefreshMs);
 }
 

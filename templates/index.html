@@ -49,6 +49,14 @@
     </div>
 
     <div class="calendar-wrapper">
+        <div class="mobile-calendar-overview">
+            <div class="mobile-month-switcher" role="group" aria-label="カレンダーの表示月">
+                <button class="month-switch-btn" type="button" onclick="changeMonth(-1)" aria-label="前月" title="前月"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                <h1 id="mobileMonth" aria-live="polite"></h1>
+                <button class="month-switch-btn" type="button" onclick="changeMonth(1)" aria-label="次月" title="次月"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+            </div>
+            <p class="mobile-shift-summary" id="mobileShiftSummary" aria-live="polite"></p>
+        </div>
         <div class="calendar-header-row">
             <div class="calendar-header sun">日</div>
             <div class="calendar-header">月</div>
