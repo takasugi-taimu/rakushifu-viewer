@@ -496,7 +496,9 @@ function showSearchPage() {
     updateSearchMonthDisplay();
     document.getElementById('staffSearchInput').value = '';
     searchStaff();
-    document.getElementById('staffSearchInput').focus();
+    if (window.matchMedia('(min-width: 760px)').matches) {
+        document.getElementById('staffSearchInput').focus();
+    }
 }
 
 async function searchStaff() {
