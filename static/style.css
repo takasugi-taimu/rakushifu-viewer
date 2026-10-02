@@ -970,6 +970,7 @@ body {
 
 @media (max-width: 759px) {
     .calendar-sidebar { display: none; }
+    .search-page-heading, .pay-page-heading { display: none; }
     .page-shell { padding-top: 12px; }
     .mobile-calendar-overview { display: block; }
     .mobile-month-switcher {
