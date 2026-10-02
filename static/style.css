@@ -565,6 +565,12 @@ body {
     gap: 4px 8px;
 }
 .worker-name-link {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
     min-width: 0;
     overflow-wrap: anywhere;
 }
@@ -782,21 +788,24 @@ body {
     text-decoration: underline;
 }
 
-.modal-backdrop-muted {
-    opacity: 0.3 !important;
-}
-
-#staffDetailModal .modal-content {
+#detailModal [hidden] { display: none !important; }
+#detailModal .modal-title:focus { outline: none; }
+#detailModal .modal-content {
     display: flex;
     flex-direction: column;
+    height: min(720px, calc(100dvh - 32px));
 }
 
-#staffDetailModal .modal-body {
+#detailModal .modal-body {
     padding: 16px 20px 18px;
+    min-height: 0;
     overflow-y: auto;
 }
 
-#staffDetailModal .modal-footer-custom {
+#detailModal .modal-header-custom, #detailModal .modal-footer-custom { flex-shrink: 0; }
+#detailModal .modal-footer-custom {
+    display: flex;
+    gap: 8px;
     background: var(--surface);
     border-top: 1px solid var(--border-light);
 }

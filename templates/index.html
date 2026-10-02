@@ -138,48 +138,33 @@
         </button>
     </nav>
 
-    <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header-custom">
+                <div class="modal-header-custom" id="shiftDetailHeader">
                     <div class="modal-heading">
-                        <h5 class="modal-title" id="modalTitle"></h5>
+                        <h5 class="modal-title" id="modalTitle" tabindex="-1"></h5>
                         <div class="modal-date-sub" id="modalDateSub"></div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
                 </div>
                 <div class="modal-body" id="modalBody">
-                    <div class="d-flex justify-content-center py-5">
-                        <div class="spinner-ring"></div>
-                    </div>
+                    <div class="d-flex justify-content-center py-5"><div class="spinner-ring"></div></div>
                 </div>
-                <div class="modal-footer-custom">
-                    <button type="button" class="btn-dismiss" data-bs-dismiss="modal">閉じる</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="staffDetailModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header-custom">
+                <div class="modal-header-custom" id="staffDetailHeader" hidden>
                     <div class="modal-heading">
-                        <h5 class="modal-title"><span id="staffDetailName"></span></h5>
+                        <h5 class="modal-title" id="staffDetailName" tabindex="-1"></h5>
                         <div class="modal-date-sub">従業員ID: <span id="staffDetailCode"></span></div>
                         <div class="modal-date-sub">誕生日: <span id="staffDetailBirthday"></span></div>
                     </div>
-                    <button type="button" class="btn-close" onclick="backToShiftDetail()" aria-label="戻る"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
                 </div>
-
-                <div class="modal-body" id="staffDetailBody">
-                    <div class="d-flex justify-content-center py-5">
-                        <div class="spinner-ring"></div>
-                    </div>
+                <div class="modal-body" id="staffDetailBody" hidden>
+                    <div class="d-flex justify-content-center py-5"><div class="spinner-ring"></div></div>
                 </div>
-
                 <div class="modal-footer-custom">
-                    <button type="button" class="btn-dismiss" onclick="backToShiftDetail()">戻る</button>
+                    <button type="button" class="btn-dismiss" id="backToShiftBtn" onclick="backToShiftDetail()" hidden>戻る</button>
+                    <button type="button" class="btn-dismiss" data-bs-dismiss="modal">閉じる</button>
                 </div>
             </div>
         </div>
