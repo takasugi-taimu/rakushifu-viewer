@@ -72,6 +72,32 @@ class FakeAuthenticator:
 
 
 class ShiftArchitectureTests(unittest.TestCase):
+    def test_staff_list_orders_employee_codes_before_limiting_results(self):
+        payload = sample_payload('0000000001', 'Viewer', 2026, 9)
+        payload['users'] = [payload['users'][0]] + [
+            {'id': number + 10, 'name': f'Fixture {200 - number:03d}',
+             'employee_code': str(number), 'belonging_store_id': 10}
+            for number in range(105, 1, -1)
+        ] + [
+            {'id': 200, 'name': 'Fixture padded', 'employee_code': '0002',
+             'belonging_store_id': 10},
+            {'id': 201, 'name': 'Special text', 'employee_code': 'A1',
+             'belonging_store_id': 10},
+            {'id': 202, 'name': 'Special missing', 'belonging_store_id': 10},
+        ]
+        month = map_schedule(payload, 2026, 9)
+        with patch.object(FakeConnection, 'fetch', return_value=month):
+            cases = ShiftUseCases(FakeAuthenticator(), MemorySessionStore())
+            token = cases.login('0000000001', 'test-password')
+            results = cases.search_staff('', 2026, 9, token)
+            self.assertEqual(len(results), 100)
+            self.assertEqual([int(item['employee_code']) for item in results],
+                             [2, 2] + list(range(3, 101)))
+            filtered = cases.search_staff('Fixture ', 2026, 9, token)
+            self.assertEqual(filtered, results)
+            special = cases.search_staff('Special', 2026, 9, token)
+            self.assertEqual([item['user_id'] for item in special], [201, 202])
+
     def test_pay_estimate_handles_overnight_night_hours_and_break(self):
         shifts = [
             Shift(date(2026, 9, 10), 1, 10, TimeOfDay(21, 0), TimeOfDay(25, 0),
