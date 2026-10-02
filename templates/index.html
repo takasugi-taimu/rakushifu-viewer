@@ -146,7 +146,6 @@
                         <h5 class="modal-title" id="modalTitle" tabindex="-1"></h5>
                         <div class="modal-date-sub" id="modalDateSub"></div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
                 </div>
                 <div class="modal-body" id="modalBody">
                     <div class="d-flex justify-content-center py-5"><div class="spinner-ring"></div></div>
@@ -162,8 +161,7 @@
                     <div class="d-flex justify-content-center py-5"><div class="spinner-ring"></div></div>
                 </div>
                 <div class="modal-footer-custom">
-                    <button type="button" class="btn-dismiss" id="backToShiftBtn" onclick="backToShiftDetail()" hidden>戻る</button>
-                    <button type="button" class="btn-dismiss" id="closeDetailBtn" data-bs-dismiss="modal">閉じる</button>
+                    <button type="button" class="btn-dismiss" onclick="backModal()">戻る</button>
                 </div>
             </div>
         </div>

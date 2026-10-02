@@ -8,8 +8,24 @@ const payPage = document.getElementById('payPage');
 const detailModalElement = document.getElementById('detailModal');
 let modalRequestId = 0;
 let modalView = null;
-let selectedWorkerButton = null;
-let shiftScrollTop = 0;
+let modalHistory = [];
+
+function rememberModalView() {
+    if (!modalView || !detailModalElement.classList.contains('show')) {
+        modalHistory = [];
+        return;
+    }
+    const body = document.getElementById(modalView === 'staff' ? 'staffDetailBody' : 'modalBody');
+    modalHistory.push({
+        view: modalView,
+        nodes: Array.from(body.childNodes),
+        scrollTop: body.scrollTop,
+        focusedElement: document.activeElement,
+        staffData: currentStaffData,
+        headings: Object.fromEntries(['modalTitle', 'modalDateSub', 'staffDetailName',
+            'staffDetailCode', 'staffDetailBirthday'].map(id => [id, document.getElementById(id).textContent])),
+    });
+}
 
 function setModalView(view) {
     modalView = view;
@@ -18,8 +34,6 @@ function setModalView(view) {
     document.getElementById('modalBody').hidden = isStaff;
     document.getElementById('staffDetailHeader').hidden = !isStaff;
     document.getElementById('staffDetailBody').hidden = !isStaff;
-    document.getElementById('backToShiftBtn').hidden = !isStaff;
-    document.getElementById('closeDetailBtn').hidden = isStaff;
     const titleId = isStaff ? 'staffDetailName' : 'modalTitle';
     detailModalElement.setAttribute('aria-labelledby', titleId);
     if (detailModalElement.classList.contains('show')) document.getElementById(titleId).focus();
@@ -44,7 +58,7 @@ detailModalElement.addEventListener('hide.bs.modal', () => {
     modalRequestId++;
     modalView = null;
     currentStaffData = null;
-    selectedWorkerButton = null;
+    modalHistory = [];
 });
 
 detailModalElement.addEventListener('shown.bs.modal', () => {
@@ -164,11 +178,9 @@ async function renderCalendar(silent = false) {
 }
 
 async function showDetail(dateStr) {
+    rememberModalView();
     const requestId = ++modalRequestId;
-    selectedWorkerButton = null;
-    shiftScrollTop = 0;
     currentStaffData = null;
-    staffDetailSource = 'shift';
     const dateObj = new Date(`${dateStr}T00:00:00`);
     const days = ['日', '月', '火', '水', '木', '金', '土'];
     const dayName = days[dateObj.getDay()];
@@ -249,7 +261,6 @@ async function showDetail(dateStr) {
                 `;
                 const workerButton = div.querySelector('.worker-name-link');
                 workerButton.addEventListener('click', () => {
-                    selectedWorkerButton = workerButton;
                     showStaffDetail(worker.user_id, dateObj.getFullYear(), dateObj.getMonth() + 1);
                 });
                 modalBody.appendChild(div);
@@ -325,7 +336,6 @@ function showCalendarPage() {
 
 // スタッフ詳細表示機能
 let currentStaffData = null;
-let staffDetailSource = 'shift';
 
 function formatBirthday(dateString) {
     if (!dateString) {
@@ -350,10 +360,9 @@ function formatDuration(totalMinutes) {
     return `${hours}時間${String(minutes).padStart(2, '0')}分`;
 }
 
-async function showStaffDetail(userId, year, month, source = 'shift') {
+async function showStaffDetail(userId, year, month) {
+    rememberModalView();
     const requestId = ++modalRequestId;
-    staffDetailSource = source;
-    if (source === 'shift') shiftScrollTop = document.getElementById('modalBody').scrollTop;
     currentStaffData = null;
     document.getElementById('staffDetailName').textContent = '読み込み中...';
     document.getElementById('staffDetailCode').textContent = '—';
@@ -457,17 +466,21 @@ function renderStaffSchedule() {
     }
 }
 
-function backToShiftDetail() {
-    if (modalView !== 'staff') return;
-    if (staffDetailSource !== 'shift') {
+function backModal() {
+    if (!modalView) return;
+    const previous = modalHistory.pop();
+    if (!previous) {
         detailModal.hide();
         return;
     }
     modalRequestId++;
-    currentStaffData = null;
-    setModalView('shift');
-    document.getElementById('modalBody').scrollTop = shiftScrollTop;
-    if (selectedWorkerButton?.isConnected) selectedWorkerButton.focus({ preventScroll: true });
+    currentStaffData = previous.staffData;
+    for (const [id, text] of Object.entries(previous.headings)) document.getElementById(id).textContent = text;
+    const body = document.getElementById(previous.view === 'staff' ? 'staffDetailBody' : 'modalBody');
+    body.replaceChildren(...previous.nodes);
+    setModalView(previous.view);
+    body.scrollTop = previous.scrollTop;
+    if (previous.focusedElement?.isConnected) previous.focusedElement.focus({ preventScroll: true });
 }
 
 let searchTimer;
@@ -508,7 +521,7 @@ async function searchStaff() {
             button.type = 'button';
             button.className = 'search-person';
             button.innerHTML = `<span><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(person.employee_code || 'コード未設定')}</small></span><i class="bi bi-chevron-right"></i>`;
-            button.addEventListener('click', () => showStaffDetail(person.user_id, year, month, 'search'));
+            button.addEventListener('click', () => showStaffDetail(person.user_id, year, month));
             results.appendChild(button);
         }
     } catch (error) {
