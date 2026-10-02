@@ -2,12 +2,44 @@ let currentDate = new Date();
 
 const calendarContainer = document.getElementById('calendarContainer');
 const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
-const staffDetailModal = new bootstrap.Modal(document.getElementById('staffDetailModal'));
 const calendarPage = document.getElementById('calendarPage');
 const searchPage = document.getElementById('searchPage');
 const payPage = document.getElementById('payPage');
 const detailModalElement = document.getElementById('detailModal');
-const staffDetailModalElement = document.getElementById('staffDetailModal');
+let modalRequestId = 0;
+let modalView = null;
+let modalHistory = [];
+let staffSelection = null;
+
+function rememberModalView() {
+    if (!modalView || !detailModalElement.classList.contains('show')) {
+        modalHistory = [];
+        return;
+    }
+    const body = document.getElementById(modalView === 'staff' ? 'staffDetailBody' : 'modalBody');
+    modalHistory.push({
+        view: modalView,
+        nodes: Array.from(body.childNodes),
+        scrollTop: body.scrollTop,
+        focusedElement: document.activeElement,
+        staffData: currentStaffData,
+        staffSelection,
+        headings: Object.fromEntries(['modalTitle', 'modalDateSub', 'staffDetailName',
+            'staffDetailCode', 'staffDetailBirthday'].map(id => [id, document.getElementById(id).textContent])),
+    });
+}
+
+function setModalView(view) {
+    modalView = view;
+    const isStaff = view === 'staff';
+    document.getElementById('shiftDetailHeader').hidden = isStaff;
+    document.getElementById('modalBody').hidden = isStaff;
+    document.getElementById('staffDetailHeader').hidden = !isStaff;
+    document.getElementById('staffDetailBody').hidden = !isStaff;
+    const titleId = isStaff ? 'staffDetailName' : 'modalTitle';
+    detailModalElement.setAttribute('aria-labelledby', titleId);
+    if (detailModalElement.classList.contains('show')) document.getElementById(titleId).focus();
+}
 
 async function authenticatedFetch(url, options) {
     const response = await fetch(url, options);
@@ -24,13 +56,16 @@ function escapeHtml(value) {
     })[character]);
 }
 
-staffDetailModalElement.addEventListener('hidden.bs.modal', () => {
-    detailModalElement.classList.remove('modal-backdrop-muted');
+detailModalElement.addEventListener('hide.bs.modal', () => {
+    modalRequestId++;
+    modalView = null;
     currentStaffData = null;
+    staffSelection = null;
+    modalHistory = [];
 });
 
-staffDetailModalElement.addEventListener('hide.bs.modal', () => {
-    detailModalElement.classList.remove('modal-backdrop-muted');
+detailModalElement.addEventListener('shown.bs.modal', () => {
+    document.getElementById(modalView === 'staff' ? 'staffDetailName' : 'modalTitle').focus();
 });
 
 const appHeader = document.getElementById('appHeader');
@@ -43,6 +78,7 @@ function updateMonthDisplay() {
     const month = currentDate.getMonth();
     document.getElementById('monthYear').textContent = `${year}年`;
     document.getElementById('monthNum').textContent = month + 1;
+    document.getElementById('mobileMonth').textContent = `${year}年${month + 1}月`;
 }
 
 async function fetchCalendarData(year, month) {
@@ -71,6 +107,7 @@ async function renderCalendar(silent = false) {
     updateMonthDisplay();
 
     if (!silent) {
+        document.getElementById('mobileShiftSummary').textContent = '自分の勤務日を確認中…';
         calendarContainer.innerHTML = `
             <div class="loading-placeholder">
                 <div class="spinner-ring"></div>
@@ -81,6 +118,7 @@ async function renderCalendar(silent = false) {
     const shiftData = await fetchCalendarData(year, month);
     if (requestId !== calendarRequestId) return;
     if (shiftData === null) {
+        if (!silent) document.getElementById('mobileShiftSummary').textContent = '自分の勤務日を取得できませんでした';
         if (!silent) calendarContainer.innerHTML = '<div class="loading-placeholder">シフトを取得できませんでした</div>';
         calendarRefreshTimer = setTimeout(() => renderCalendar(true), Math.min(calendarRefreshMs, 30000));
         return;
@@ -92,6 +130,7 @@ async function renderCalendar(silent = false) {
     const startDay = firstDay.getDay();
     const totalDays = lastDay.getDate();
     const today = new Date();
+    let myShiftDays = 0;
 
     for (let i = 0; i < startDay; i++) {
         const emptyCell = document.createElement('div');
@@ -105,6 +144,7 @@ async function renderCalendar(silent = false) {
         const dayOfWeek = dateObj.getDay();
 
         const dayData = shiftData[dateStr] || { has_me: false, total_count: 0 };
+        if (dayData.has_me) myShiftDays++;
         const isToday = dateObj.getDate() === today.getDate() &&
                         dateObj.getMonth() === today.getMonth() &&
                         dateObj.getFullYear() === today.getFullYear();
@@ -136,10 +176,14 @@ async function renderCalendar(silent = false) {
         cells.appendChild(cell);
     }
     calendarContainer.replaceChildren(cells);
+    document.getElementById('mobileShiftSummary').textContent = `自分の勤務日：${myShiftDays}日`;
     calendarRefreshTimer = setTimeout(() => renderCalendar(true), calendarRefreshMs);
 }
 
 async function showDetail(dateStr) {
+    rememberModalView();
+    const requestId = ++modalRequestId;
+    currentStaffData = null;
     const dateObj = new Date(`${dateStr}T00:00:00`);
     const days = ['日', '月', '火', '水', '木', '金', '土'];
     const dayName = days[dateObj.getDay()];
@@ -148,6 +192,8 @@ async function showDetail(dateStr) {
         `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
     document.getElementById('modalDateSub').textContent =
         `${dateObj.getFullYear()}年 ${dayName}曜日`;
+
+    setModalView('shift');
 
     document.getElementById('modalBody').innerHTML = `
         <div class="d-flex justify-content-center py-5">
@@ -160,9 +206,11 @@ async function showDetail(dateStr) {
         const response = await authenticatedFetch(`/api/shifts?date=${dateStr}`);
         if (!response.ok) throw new Error('API Error');
         const data = await response.json();
+        if (requestId !== modalRequestId) return;
 
         const modalBody = document.getElementById('modalBody');
         modalBody.innerHTML = '';
+        modalBody.scrollTop = 0;
 
         if (data.workers && data.workers.length > 0) {
             let separatorShown = false;
@@ -197,9 +245,9 @@ async function showDetail(dateStr) {
                 div.innerHTML = `
                     <div class="worker-card-header">
                         <div class="worker-identity">
-                            <a class="worker-name-link" onclick="showStaffDetail(${worker.user_id}, ${currentDate.getFullYear()}, ${currentDate.getMonth() + 1})" style="cursor: pointer;">
+                            <button type="button" class="worker-name-link">
                                 <span class="worker-name">${escapeHtml(worker.name)}</span>
-                            </a>
+                            </button>
                             ${ageDisplay}
                             ${rankBadge}
                         </div>
@@ -214,6 +262,10 @@ async function showDetail(dateStr) {
                     ${worker.rest_times && worker.rest_times.length
                         ? `<div class="worker-time"><i class="bi bi-cup-hot"></i>休憩 ${escapeHtml(worker.rest_times.join(', '))}</div>` : ''}
                 `;
+                const workerButton = div.querySelector('.worker-name-link');
+                workerButton.addEventListener('click', () => {
+                    showStaffDetail(worker.user_id, dateObj.getFullYear(), dateObj.getMonth() + 1);
+                });
                 modalBody.appendChild(div);
 
                 if (worker.is_me && hasMyShift && data.workers.length > 1) {
@@ -232,6 +284,7 @@ async function showDetail(dateStr) {
         }
 
     } catch (error) {
+        if (requestId !== modalRequestId) return;
         console.error(error);
         document.getElementById('modalBody').innerHTML = `
             <div class="error-state">
@@ -286,7 +339,6 @@ function showCalendarPage() {
 
 // スタッフ詳細表示機能
 let currentStaffData = null;
-let staffDetailSource = 'shift';
 
 function formatBirthday(dateString) {
     if (!dateString) {
@@ -311,28 +363,32 @@ function formatDuration(totalMinutes) {
     return `${hours}時間${String(minutes).padStart(2, '0')}分`;
 }
 
-async function showStaffDetail(userId, year, month, source = 'shift') {
-    staffDetailSource = source;
-    document.querySelector('#staffDetailModal .btn-dismiss').textContent = source === 'search' ? '閉じる' : '戻る';
-    document.querySelector('#staffDetailModal .btn-close').setAttribute('aria-label', source === 'search' ? '閉じる' : '戻る');
+async function showStaffDetail(userId, year, month, rememberHistory = true) {
+    if (rememberHistory) rememberModalView();
+    staffSelection = { userId, year, month };
+    const requestId = ++modalRequestId;
+    currentStaffData = null;
     document.getElementById('staffDetailName').textContent = '読み込み中...';
     document.getElementById('staffDetailCode').textContent = '—';
     document.getElementById('staffDetailBirthday').textContent = '—';
-    // 背景のモーダルをちょっと透す
-    if (source === 'shift') document.getElementById('detailModal').classList.add('modal-backdrop-muted');
 
     document.getElementById('staffDetailBody').innerHTML = `
         <div class="d-flex justify-content-center py-5">
             <div class="spinner-ring"></div>
         </div>`;
+    addStaffMonthSwitcher();
 
-    staffDetailModal.show();
+    setModalView('staff');
+    document.getElementById('staffDetailBody').scrollTop = 0;
+    detailModal.show();
 
     try {
         const response = await authenticatedFetch(`/api/staff/${userId}?year=${year}&month=${month}`);
         if (!response.ok) throw new Error('API Error');
 
-        currentStaffData = await response.json();
+        const data = await response.json();
+        if (requestId !== modalRequestId) return;
+        currentStaffData = data;
 
         document.getElementById('staffDetailName').textContent = currentStaffData.name || '未設定';
         document.getElementById('staffDetailCode').textContent = currentStaffData.employee_code || '未設定';
@@ -343,13 +399,39 @@ async function showStaffDetail(userId, year, month, source = 'shift') {
 
         renderStaffSchedule();
     } catch (error) {
+        if (requestId !== modalRequestId) return;
         console.error(error);
         document.getElementById('staffDetailBody').innerHTML = `
             <div class="error-state">
                 <div class="error-state-icon"><i class="bi bi-exclamation-triangle"></i></div>
                 <p>データの取得に失敗しました</p>
             </div>`;
+        addStaffMonthSwitcher();
     }
+}
+
+function changeStaffMonth(delta) {
+    if (!staffSelection || modalView !== 'staff') return;
+    const { userId, year, month } = staffSelection;
+    const target = year * 12 + month - 1 + delta;
+    const targetYear = Math.floor(target / 12);
+    if (targetYear < 1 || targetYear > 9999) return;
+    showStaffDetail(userId, targetYear, target % 12 + 1, false);
+}
+
+function addStaffMonthSwitcher() {
+    const { year, month } = staffSelection;
+    const controls = document.createElement('div');
+    controls.className = 'staff-month-switcher';
+    controls.setAttribute('role', 'group');
+    controls.setAttribute('aria-label', 'スタッフシフトの表示月');
+    controls.innerHTML = `
+        <button class="month-switch-btn" type="button" aria-label="前月" ${year === 1 && month === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+        <span aria-live="polite">${year}年${month}月</span>
+        <button class="month-switch-btn" type="button" aria-label="次月" ${year === 9999 && month === 12 ? 'disabled' : ''}><i class="bi bi-chevron-right" aria-hidden="true"></i></button>`;
+    controls.querySelector('[aria-label="前月"]').addEventListener('click', () => changeStaffMonth(-1));
+    controls.querySelector('[aria-label="次月"]').addEventListener('click', () => changeStaffMonth(1));
+    document.getElementById('staffDetailBody').prepend(controls);
 }
 
 function renderStaffSchedule() {
@@ -377,25 +459,34 @@ function renderStaffSchedule() {
 
         const scheduleHtml = currentStaffData.schedules.map(schedule => `
             <div class="schedule-item">
-                <div class="schedule-date">
+                <button class="schedule-date schedule-date-btn" type="button" data-date="${escapeHtml(schedule.date)}">
                     <span class="schedule-date-main">${escapeHtml(schedule.date_display)}</span>
                     <span class="schedule-dow">(${escapeHtml(schedule.day_of_week)})</span>
-                </div>
+                </button>
                 <div class="schedule-time">
                     <span class="schedule-time-main"><i class="bi bi-clock" aria-hidden="true"></i>${escapeHtml(schedule.time)}</span>
-                    ${schedule.rest_times && schedule.rest_times.length
-                        ? `<small class="schedule-rest">休憩 ${escapeHtml(schedule.rest_times.join(', '))}</small>` : ''}
                 </div>
+                ${schedule.rest_times && schedule.rest_times.length
+                    ? `<div class="schedule-rest"><span>休憩</span>${schedule.rest_times.map(time => `<span>${escapeHtml(time)}</span>`).join('')}</div>` : ''}
             </div>
         `).join('');
 
         body.innerHTML = `
             <div class="schedule-summary">
-                <div class="schedule-summary-label">今月の勤務時間合計</div>
+                <div class="schedule-summary-label">表示月の勤務時間合計</div>
                 <div class="schedule-summary-value">${formatDuration(totalMinutes)}</div>
             </div>
             <div class="schedule-list">${scheduleHtml}</div>
         `;
+        body.querySelectorAll('.schedule-date-btn').forEach(button => {
+            const dateStr = button.dataset.date;
+            const date = new Date(`${dateStr}T00:00:00`);
+            const validDate = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+                && !Number.isNaN(date.getTime())
+                && `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` === dateStr;
+            button.disabled = !validDate;
+            if (validDate) button.addEventListener('click', () => showDetail(dateStr));
+        });
     } else {
         body.innerHTML = `
             <div class="empty-state">
@@ -403,17 +494,32 @@ function renderStaffSchedule() {
                 <p>この月の出勤予定はありません</p>
             </div>`;
     }
+    addStaffMonthSwitcher();
 }
 
-function backToShiftDetail() {
-    staffDetailModal.hide();
+function backModal() {
+    if (!modalView) return;
+    const previous = modalHistory.pop();
+    if (!previous) {
+        detailModal.hide();
+        return;
+    }
+    modalRequestId++;
+    currentStaffData = previous.staffData;
+    staffSelection = previous.staffSelection;
+    for (const [id, text] of Object.entries(previous.headings)) document.getElementById(id).textContent = text;
+    const body = document.getElementById(previous.view === 'staff' ? 'staffDetailBody' : 'modalBody');
+    body.replaceChildren(...previous.nodes);
+    setModalView(previous.view);
+    body.scrollTop = previous.scrollTop;
+    if (previous.focusedElement?.isConnected) previous.focusedElement.focus({ preventScroll: true });
 }
 
 let searchTimer;
 let searchRequest = 0;
 
 function updateSearchMonthDisplay() {
-    document.getElementById('searchMonth').textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月・同じ店舗`;
+    document.getElementById('mobileSearchMonth').textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月`;
 }
 
 function showSearchPage() {
@@ -421,7 +527,9 @@ function showSearchPage() {
     updateSearchMonthDisplay();
     document.getElementById('staffSearchInput').value = '';
     searchStaff();
-    document.getElementById('staffSearchInput').focus();
+    if (window.matchMedia('(min-width: 760px)').matches) {
+        document.getElementById('staffSearchInput').focus();
+    }
 }
 
 async function searchStaff() {
@@ -446,7 +554,7 @@ async function searchStaff() {
             button.type = 'button';
             button.className = 'search-person';
             button.innerHTML = `<span><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(person.employee_code || 'コード未設定')}</small></span><i class="bi bi-chevron-right"></i>`;
-            button.addEventListener('click', () => showStaffDetail(person.user_id, year, month, 'search'));
+            button.addEventListener('click', () => showStaffDetail(person.user_id, year, month));
             results.appendChild(button);
         }
     } catch (error) {
@@ -508,7 +616,7 @@ async function fetchPayEstimate(save = true) {
 }
 
 function updatePayMonthDisplay() {
-    document.getElementById('payMonth').textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月・自分のシフト`;
+    document.getElementById('mobilePayMonth').textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月`;
 }
 
 async function showPayPage() {

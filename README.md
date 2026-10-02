@@ -91,7 +91,7 @@ uv run pywrangler deploy
 
 `worker.py`が`production`モードを指定します。`APP_ENV`を手動で切り替える必要はありません。`prepare_worker.py`は`.worker-build`全体を再作成するため、その中のローカルセッションも消えます。コード変更後の再ビルド、バインディング、公開後の確認手順は[Workersの起動・デプロイ](docs/setup.md#workersの起動デプロイ)に記載しています。
 
-GitHub Actionsでは、既存のローカルテストを実行し、成功した`main`の変更をCloudflareへ自動デプロイします。Pull Requestではテストだけを実行します。初回はGitHub SecretsにCloudflareの認証情報を登録してください。[自動デプロイの設定](docs/setup.md#github-actionsから自動デプロイする)に手順を記載しています。
+GitHub Actionsでは、`main`・`dev`へのpushと両ブランチ宛てのPull Requestで、既存のローカルテストを実行します。成功した`main`へのpushだけをCloudflareへ自動デプロイし、`dev`へのpushとPull Requestではテストだけを実行します。手動実行も、選択ブランチが`main`の場合はテスト成功後にデプロイします。初回はGitHub SecretsにCloudflareの認証情報を登録してください。[自動デプロイの設定](docs/setup.md#github-actionsから自動デプロイする)に手順を記載しています。
 
 ## 実行環境による違い
 

@@ -204,7 +204,13 @@ class ShiftUseCases:
                 "rank": staff.rank,
                 "has_shift": staff.id in scheduled_ids,
             })
-        results.sort(key=lambda item: (item["name"].casefold(), item["user_id"]))
+        def employee_order(item):
+            code = item["employee_code"] or ""
+            numeric = code.isascii() and code.isdecimal()
+            return (not code, not numeric, int(code) if numeric else code.casefold(),
+                    item["name"].casefold(), item["user_id"])
+
+        results.sort(key=employee_order)
         return results[:100]
 
     def my_pay(self, year: int, month_number: int, token: str,
