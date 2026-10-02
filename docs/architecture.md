@@ -149,7 +149,7 @@ APIはアプリCookieで認証します。ブラウザから別のトークン�
 | --- | --- | --- |
 | `GET /api/calendar` | クエリ：`year`、`month` | 日付をキーとした`has_me`、`my_shift_time`、`my_shift_end_time`、`total_count` |
 | `GET /api/shifts` | クエリ：`date` | `date`、`count`、`has_my_shift`、`workers` |
-| `GET /api/staff` | クエリ：`year`、`month`、任意の`q`（100文字以下） | メンバーの配列。`user_id`、`name`、`employee_code`、`rank`、`has_shift` |
+| `GET /api/staff` | クエリ：`year`、`month`、任意の`q`（100文字以下） | 従業員コードの昇順で最大100人の配列（数字は数値順、英数字、未設定の順）。`user_id`、`name`、`employee_code`、`rank`、`has_shift` |
 | `GET /api/staff/<user_id>` | パス：整数のID。クエリ：`year`、`month` | メンバー情報、`schedules`、`total_work_minutes` |
 | `POST /api/pay/estimate` | JSON：`year`、`month`、`hourly_wage`、`night_bonus_percent` | `user_id`、`shift_count`、`scheduled_minutes`、`break_minutes`、`worked_minutes`、`night_minutes`、`estimated_yen` |
 
