@@ -771,6 +771,19 @@ body {
     font-size: .75rem;
     line-height: 1.45;
 }
+.schedule-date-btn {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.schedule-date-btn:hover .schedule-date-main { color: var(--primary-dark); }
+.schedule-date-btn:focus-visible { outline: 3px solid var(--primary-light); outline-offset: 3px; }
+.schedule-date-btn:disabled { cursor: default; text-decoration: none; }
 .schedule-rest span { white-space: nowrap; }
 
 @media (max-width: 480px) {

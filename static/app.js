@@ -18,7 +18,8 @@ function setModalView(view) {
     document.getElementById('modalBody').hidden = isStaff;
     document.getElementById('staffDetailHeader').hidden = !isStaff;
     document.getElementById('staffDetailBody').hidden = !isStaff;
-    document.getElementById('backToShiftBtn').hidden = !isStaff || staffDetailSource !== 'shift';
+    document.getElementById('backToShiftBtn').hidden = !isStaff;
+    document.getElementById('closeDetailBtn').hidden = isStaff;
     const titleId = isStaff ? 'staffDetailName' : 'modalTitle';
     detailModalElement.setAttribute('aria-labelledby', titleId);
     if (detailModalElement.classList.contains('show')) document.getElementById(titleId).focus();
@@ -165,6 +166,9 @@ async function renderCalendar(silent = false) {
 async function showDetail(dateStr) {
     const requestId = ++modalRequestId;
     selectedWorkerButton = null;
+    shiftScrollTop = 0;
+    currentStaffData = null;
+    staffDetailSource = 'shift';
     const dateObj = new Date(`${dateStr}T00:00:00`);
     const days = ['日', '月', '火', '水', '木', '金', '土'];
     const dayName = days[dateObj.getDay()];
@@ -191,6 +195,7 @@ async function showDetail(dateStr) {
 
         const modalBody = document.getElementById('modalBody');
         modalBody.innerHTML = '';
+        modalBody.scrollTop = 0;
 
         if (data.workers && data.workers.length > 0) {
             let separatorShown = false;
@@ -415,10 +420,10 @@ function renderStaffSchedule() {
 
         const scheduleHtml = currentStaffData.schedules.map(schedule => `
             <div class="schedule-item">
-                <div class="schedule-date">
+                <button class="schedule-date schedule-date-btn" type="button" data-date="${escapeHtml(schedule.date)}">
                     <span class="schedule-date-main">${escapeHtml(schedule.date_display)}</span>
                     <span class="schedule-dow">(${escapeHtml(schedule.day_of_week)})</span>
-                </div>
+                </button>
                 <div class="schedule-time">
                     <span class="schedule-time-main"><i class="bi bi-clock" aria-hidden="true"></i>${escapeHtml(schedule.time)}</span>
                 </div>
@@ -434,6 +439,15 @@ function renderStaffSchedule() {
             </div>
             <div class="schedule-list">${scheduleHtml}</div>
         `;
+        body.querySelectorAll('.schedule-date-btn').forEach(button => {
+            const dateStr = button.dataset.date;
+            const date = new Date(`${dateStr}T00:00:00`);
+            const validDate = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+                && !Number.isNaN(date.getTime())
+                && `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` === dateStr;
+            button.disabled = !validDate;
+            if (validDate) button.addEventListener('click', () => showDetail(dateStr));
+        });
     } else {
         body.innerHTML = `
             <div class="empty-state">
@@ -444,7 +458,11 @@ function renderStaffSchedule() {
 }
 
 function backToShiftDetail() {
-    if (modalView !== 'staff' || staffDetailSource !== 'shift') return;
+    if (modalView !== 'staff') return;
+    if (staffDetailSource !== 'shift') {
+        detailModal.hide();
+        return;
+    }
     modalRequestId++;
     currentStaffData = null;
     setModalView('shift');
