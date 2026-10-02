@@ -972,7 +972,12 @@ body {
     .calendar-sidebar { display: none; }
     .search-page-heading, .pay-page-heading { display: none; }
     .page-shell { padding-top: 12px; }
-    .mobile-calendar-overview { display: block; }
+    .mobile-calendar-overview {
+        display: block;
+        width: calc(100vw - 24px);
+        max-width: 536px;
+        margin: 0 auto;
+    }
     .mobile-month-switcher {
         display: grid;
         grid-template-columns: 44px minmax(0, 1fr) 44px;
