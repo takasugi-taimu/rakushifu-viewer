@@ -198,12 +198,6 @@ body {
 .month-switch-btn:hover { background: var(--primary-50); }
 .month-switch-btn:active { transform: scale(.95); }
 .month-switch-btn i { font-size: .92rem; }
-.page-month-switcher {
-    position: absolute;
-    top: 16px;
-    right: 24px;
-    margin: 0;
-}
 
 .floating-nav {
     position: fixed;
@@ -948,22 +942,6 @@ body {
     margin: 0 auto;
     padding: 0 12px;
 }
-.search-page-heading, .pay-page-heading {
-    position: relative;
-    padding: 26px 30px;
-    border: 1px solid rgba(99,102,241,.13);
-    border-radius: var(--radius-xl);
-    background: linear-gradient(120deg, #fff 0%, #f8f8ff 66%, #eeefff 100%);
-    box-shadow: var(--shadow-md);
-}
-.search-page-heading h1, .pay-page-heading h1 {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: clamp(1.4rem, 3vw, 1.9rem);
-    font-weight: 800;
-    letter-spacing: -.03em;
-}
-.pay-page-month { margin: 9px 0 0; color: var(--text-secondary); font-size: .85rem; font-weight: 600; }
 .search-page-content, .pay-page-content {
     margin-top: 16px;
     padding: 22px 28px 26px;
@@ -984,7 +962,6 @@ body {
     .month-panel { margin: 0 12px 12px; padding: 20px 22px; min-height: 142px; }
     .floating-nav { bottom: calc(12px + env(safe-area-inset-bottom)); padding: 7px; border-radius: 19px; }
     .dock-item { min-height: 48px; font-size: .68rem; padding: 4px 2px; }
-    .search-page-heading, .pay-page-heading { padding: 22px; }
     .search-page-content, .pay-page-content { padding: 18px 20px 22px; }
     .pay-page-content .pay-total strong { font-size: 1.1rem; }
     .pay-fields { grid-template-columns: 1fr; gap: 4px; }
@@ -996,10 +973,23 @@ body {
 }
 
 .mobile-calendar-overview { display: none; }
+.page-month-overview { display: block; }
+.mobile-month-switcher {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 12px;
+}
+.mobile-month-switcher h1 {
+    margin: 0;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+.mobile-month-switcher .month-switch-btn { width: 44px; height: 44px; }
 
 @media (max-width: 759px) {
     .calendar-sidebar { display: none; }
-    .search-page-heading, .pay-page-heading { display: none; }
     .page-shell { padding-top: 12px; }
     .mobile-calendar-overview {
         display: block;
@@ -1007,19 +997,6 @@ body {
         max-width: 536px;
         margin: 0 auto;
     }
-    .mobile-month-switcher {
-        display: grid;
-        grid-template-columns: 44px minmax(0, 1fr) 44px;
-        align-items: center;
-        gap: 12px;
-    }
-    .mobile-month-switcher h1 {
-        margin: 0;
-        text-align: center;
-        font-size: 1.1rem;
-        font-weight: 700;
-    }
-    .mobile-month-switcher .month-switch-btn { width: 44px; height: 44px; }
     .mobile-shift-summary {
         margin: 8px 0 0;
         color: var(--text-secondary);
@@ -1027,7 +1004,6 @@ body {
         font-size: .78rem;
     }
     .month-caption { display: none; }
-    .page-month-switcher { position: static; margin-top: 12px; }
 }
 
 @media (min-width: 760px) {
@@ -1062,7 +1038,6 @@ body {
     .shift-badge { margin-top: 1px; padding: 1px 3px; line-height: 1.15; }
     .search-page { padding-bottom: 100px; }
     .pay-page { padding-bottom: 80px; }
-    .search-page-heading, .pay-page-heading { padding: 16px 24px; }
     .search-page-content, .pay-page-content { margin-top: 12px; padding: 16px 22px; }
     .pay-page-content .pay-fields { margin-bottom: 10px; }
     .pay-page-content .pay-total { padding: 14px 16px; }

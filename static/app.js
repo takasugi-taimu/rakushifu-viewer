@@ -488,7 +488,6 @@ let searchRequest = 0;
 
 function updateSearchMonthDisplay() {
     document.getElementById('mobileSearchMonth').textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月`;
-    document.getElementById('searchMonth').textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月・同じ店舗`;
 }
 
 function showSearchPage() {
@@ -586,7 +585,6 @@ async function fetchPayEstimate(save = true) {
 
 function updatePayMonthDisplay() {
     document.getElementById('mobilePayMonth').textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月`;
-    document.getElementById('payMonth').textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月・自分のシフト`;
 }
 
 async function showPayPage() {
