@@ -706,7 +706,7 @@ body {
 
 .schedule-item {
     display: grid;
-    grid-template-columns: minmax(0, 116px) minmax(0, 1fr);
+    grid-template-columns: max-content minmax(0, 1fr);
     align-items: start;
     gap: 12px;
     padding: 12px 14px;
@@ -722,9 +722,10 @@ body {
 
 .schedule-date {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: baseline;
+    gap: 4px;
     min-width: 0;
+    white-space: nowrap;
 }
 
 .schedule-date-main {
@@ -747,7 +748,6 @@ body {
     gap: 3px;
     min-width: 0;
     text-align: right;
-    overflow-wrap: anywhere;
 }
 .schedule-time-main {
     display: inline-flex;
@@ -756,12 +756,19 @@ body {
     white-space: nowrap;
 }
 .schedule-rest {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 2px 8px;
     color: var(--text-muted);
+    font-size: .75rem;
     line-height: 1.45;
 }
+.schedule-rest span { white-space: nowrap; }
 
 @media (max-width: 480px) {
-    .schedule-item { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .schedule-item { padding: 10px; gap: 6px; }
 }
 
 .worker-name-link {

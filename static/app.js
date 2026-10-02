@@ -389,9 +389,9 @@ function renderStaffSchedule() {
                 </div>
                 <div class="schedule-time">
                     <span class="schedule-time-main"><i class="bi bi-clock" aria-hidden="true"></i>${escapeHtml(schedule.time)}</span>
-                    ${schedule.rest_times && schedule.rest_times.length
-                        ? `<small class="schedule-rest">休憩 ${escapeHtml(schedule.rest_times.join(', '))}</small>` : ''}
                 </div>
+                ${schedule.rest_times && schedule.rest_times.length
+                    ? `<div class="schedule-rest"><span>休憩</span>${schedule.rest_times.map(time => `<span>${escapeHtml(time)}</span>`).join('')}</div>` : ''}
             </div>
         `).join('');
 
