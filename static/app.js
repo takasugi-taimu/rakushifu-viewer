@@ -9,6 +9,7 @@ const detailModalElement = document.getElementById('detailModal');
 let modalRequestId = 0;
 let modalView = null;
 let modalHistory = [];
+let staffSelection = null;
 
 function rememberModalView() {
     if (!modalView || !detailModalElement.classList.contains('show')) {
@@ -22,6 +23,7 @@ function rememberModalView() {
         scrollTop: body.scrollTop,
         focusedElement: document.activeElement,
         staffData: currentStaffData,
+        staffSelection,
         headings: Object.fromEntries(['modalTitle', 'modalDateSub', 'staffDetailName',
             'staffDetailCode', 'staffDetailBirthday'].map(id => [id, document.getElementById(id).textContent])),
     });
@@ -58,6 +60,7 @@ detailModalElement.addEventListener('hide.bs.modal', () => {
     modalRequestId++;
     modalView = null;
     currentStaffData = null;
+    staffSelection = null;
     modalHistory = [];
 });
 
@@ -360,8 +363,9 @@ function formatDuration(totalMinutes) {
     return `${hours}時間${String(minutes).padStart(2, '0')}分`;
 }
 
-async function showStaffDetail(userId, year, month) {
-    rememberModalView();
+async function showStaffDetail(userId, year, month, rememberHistory = true) {
+    if (rememberHistory) rememberModalView();
+    staffSelection = { userId, year, month };
     const requestId = ++modalRequestId;
     currentStaffData = null;
     document.getElementById('staffDetailName').textContent = '読み込み中...';
@@ -372,6 +376,7 @@ async function showStaffDetail(userId, year, month) {
         <div class="d-flex justify-content-center py-5">
             <div class="spinner-ring"></div>
         </div>`;
+    addStaffMonthSwitcher();
 
     setModalView('staff');
     document.getElementById('staffDetailBody').scrollTop = 0;
@@ -401,7 +406,32 @@ async function showStaffDetail(userId, year, month) {
                 <div class="error-state-icon"><i class="bi bi-exclamation-triangle"></i></div>
                 <p>データの取得に失敗しました</p>
             </div>`;
+        addStaffMonthSwitcher();
     }
+}
+
+function changeStaffMonth(delta) {
+    if (!staffSelection || modalView !== 'staff') return;
+    const { userId, year, month } = staffSelection;
+    const target = year * 12 + month - 1 + delta;
+    const targetYear = Math.floor(target / 12);
+    if (targetYear < 1 || targetYear > 9999) return;
+    showStaffDetail(userId, targetYear, target % 12 + 1, false);
+}
+
+function addStaffMonthSwitcher() {
+    const { year, month } = staffSelection;
+    const controls = document.createElement('div');
+    controls.className = 'staff-month-switcher';
+    controls.setAttribute('role', 'group');
+    controls.setAttribute('aria-label', 'スタッフシフトの表示月');
+    controls.innerHTML = `
+        <button class="month-switch-btn" type="button" aria-label="前月" ${year === 1 && month === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+        <span aria-live="polite">${year}年${month}月</span>
+        <button class="month-switch-btn" type="button" aria-label="次月" ${year === 9999 && month === 12 ? 'disabled' : ''}><i class="bi bi-chevron-right" aria-hidden="true"></i></button>`;
+    controls.querySelector('[aria-label="前月"]').addEventListener('click', () => changeStaffMonth(-1));
+    controls.querySelector('[aria-label="次月"]').addEventListener('click', () => changeStaffMonth(1));
+    document.getElementById('staffDetailBody').prepend(controls);
 }
 
 function renderStaffSchedule() {
@@ -443,7 +473,7 @@ function renderStaffSchedule() {
 
         body.innerHTML = `
             <div class="schedule-summary">
-                <div class="schedule-summary-label">今月の勤務時間合計</div>
+                <div class="schedule-summary-label">表示月の勤務時間合計</div>
                 <div class="schedule-summary-value">${formatDuration(totalMinutes)}</div>
             </div>
             <div class="schedule-list">${scheduleHtml}</div>
@@ -464,6 +494,7 @@ function renderStaffSchedule() {
                 <p>この月の出勤予定はありません</p>
             </div>`;
     }
+    addStaffMonthSwitcher();
 }
 
 function backModal() {
@@ -475,6 +506,7 @@ function backModal() {
     }
     modalRequestId++;
     currentStaffData = previous.staffData;
+    staffSelection = previous.staffSelection;
     for (const [id, text] of Object.entries(previous.headings)) document.getElementById(id).textContent = text;
     const body = document.getElementById(previous.view === 'staff' ? 'staffDetailBody' : 'modalBody');
     body.replaceChildren(...previous.nodes);

@@ -829,6 +829,16 @@ body {
     background: linear-gradient(135deg, var(--primary-50), #f8fafc);
     border: 1px solid rgba(99,102,241,.14);
 }
+.staff-month-switcher {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    text-align: center;
+    font-weight: 700;
+}
+.staff-month-switcher .month-switch-btn { width: 44px; height: 44px; }
 
 .schedule-summary-label {
     font-size: .8rem;
